@@ -1,9 +1,10 @@
-// +build linux, darwin
+#+build linux, darwin
 package pico
 import libc "core:c/libc"
 import "core:c"
 import nix "core:sys/unix"
 import "core:os"
+import "core:fmt"
 
 foreign import _libc "system:c"
 @(default_calling_convention = "c")
@@ -36,9 +37,37 @@ _restore_terminal :: proc() {
 	tcsetattr(os.stdin, .FLUSH, &prev_term)
 }
 
+_get_cursor_position :: proc() -> [2]int {
+	fmt.print("\x1b[6n\r\n")
+	buf: [32]c.char
+    i := 0
+    for i < size_of([32]c.char) - 1 {
+        n_read, err := os.read(os.stdin, buf[i:i+1])
+        if n_read == 0 || buf[i] == 'R' {
+            break
+        }
+        i += 1;
+    }
+    buf[i] = 0;
+	if buf[0] != '\x1b' || buf[1] != '[' {
+        return {}
+    }
+    rows := 0
+    cols := 0
+    if libc.sscanf(cstring(&buf[2]), "%d;%d", &rows, &cols) == 2 {
+        return { rows, cols }
+    }
+	return {}
+}
+
 _get_window_size :: proc() -> [2]int {
 	ws := winsize{}
 	io_res := ioctl(os.stdout, TIOCGWINSZ, &ws)
+	if io_res == -1 || ws.ws_col == 0 {
+		fmt.print("\x1b[999C\x1b[999B")
+		// return {}
+		return _get_cursor_position()
+	}
 	assert(io_res >= 0, "didnt get window size")
 	dims := [2]int{int(ws.ws_row), int(ws.ws_col)}
 	return dims

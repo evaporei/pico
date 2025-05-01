@@ -60,12 +60,12 @@ insert_at :: proc(b: ^TextBuffer, cursor: int, s: string) {
 insert_file_at :: proc(b: ^TextBuffer, cursor: int, handle: os.Handle) -> (ok: bool) {
 	if handle == os.INVALID_HANDLE {return false}
 	fs, err := os.file_size(handle)
-	if err < 0 {return false}
+	if err != nil {return false}
 	gap_buffer.check_gap_size(&b.gb, int(fs))
 	gap_buffer.shift_gap_to(&b.gb, cursor)
 	gb_slice := b.buf[b.gap_start:b.gap_end]
 	n, rerr := os.read(handle, gb_slice)
-	fmt.assertf(rerr > -1, "read err 0x%x", -rerr)
+	fmt.assertf(rerr == nil, "read err %v", rerr)
 	assert(n == int(fs), "mismatched os.read")
 	b.gap_start += n
 	calculate_lines(b)

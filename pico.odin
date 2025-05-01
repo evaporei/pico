@@ -152,13 +152,13 @@ main :: proc() {
 	}
 	f, e := os.open(args[1], os.O_CREATE | os.O_RDWR, 0o644)
 	if os.INVALID_HANDLE == f {fmt.println("Bad Handle");os.exit(1)}
-	if e < 0 {fmt.printf("File open error 0x%x", -e);os.exit(1)}
+	if e != nil {fmt.printf("File open error %v", e);os.exit(1)}
 
 	using ansi_codes
 	_set_terminal();defer _restore_terminal()
 	alt_buffer_mode(true);defer alt_buffer_mode(false)
 
-	fs, err := os.file_size(f);assert(err > -1)
+	fs, err := os.file_size(f);assert(err == nil)
 	t := make_terminal(int(fs))
 	if fs > 0 {
 		ok := insert_file_at(&t.buffer, 0, f)
@@ -185,7 +185,7 @@ main :: proc() {
 	if SHOULD_SAVE {
 		os.close(f)
 		f, e = os.open(args[1], os.O_TRUNC | os.O_WRONLY, 0o644)
-		assert(e > -1, "Error")
+		assert(e == nil, "Error")
 		assert(f != os.INVALID_HANDLE, "Bad Handle")
 		flush_to_file(&t.buffer, f)
 	}

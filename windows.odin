@@ -1,5 +1,5 @@
-// +build windows
-// +private
+#+build windows
+#+private
 package pico
 import win "core:sys/windows"
 import "core:os"
